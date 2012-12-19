@@ -34,39 +34,39 @@ require 'stringio'
 #
 module Boss
   # Basic types
-  TYPE_INT = 0
+  TYPE_INT   = 0
   TYPE_EXTRA = 1
-  TYPE_NINT = 2
+  TYPE_NINT  = 2
 
   TYPE_TEXT = 3
-  TYPE_BIN = 4
+  TYPE_BIN  = 4
   TYPE_CREF = 5
   TYPE_LIST = 6
   TYPE_DICT = 7
 
-  # Extra types:
+                 # Extra types:
 
-  DZERO = 0 #: float 0.0
-  FZERO = 1 #: double 0.0
+  DZERO     = 0  #: float 0.0
+  FZERO     = 1  #: double 0.0
 
-  DONE = 2 #: double 1.0
-  FONE = 3 #: float 1.0
-  DMINUSONE = 4 #: double -1.0
-  FMINUSONE = 5 #: float  -1.0
+  DONE      = 2  #: double 1.0
+  FONE      = 3  #: float 1.0
+  DMINUSONE = 4  #: double -1.0
+  FMINUSONE = 5  #: float  -1.0
 
-  TFLOAT = 6  #: 32-bit IEEE float
-  TDOUBLE = 7 #: 64-bit IEEE float
+  TFLOAT  = 6    #: 32-bit IEEE float
+  TDOUBLE = 7    #: 64-bit IEEE float
 
-  TOBJECT = 8    #: object record
-  TMETHOD = 9    #: instance method
+  TOBJECT   = 8  #: object record
+  TMETHOD   = 9  #: instance method
   TFUNCTION = 10 #: callable function
-  TGLOBREF = 11  #: global reference
+  TGLOBREF  = 11 #: global reference
 
-  TTRUE    = 12
-  TFALSE   = 13
-  # TBOOLEAN = 12
-  # TREDOBJECT = 12#: __reduce__ - based object, python only, do not use elsewhere!
-  def checkArg(cond,msg=nil)
+  TTRUE  = 12
+  TFALSE = 13
+                 # TBOOLEAN = 12
+                 # TREDOBJECT = 12#: __reduce__ - based object, python only, do not use elsewhere!
+  def checkArg(cond, msg=nil)
     raise ArgumentError unless cond
   end
 
@@ -83,7 +83,7 @@ module Boss
     # or create StringIO one as output
     #
     def initialize(dst=nil)
-      @io = dst ? dst : StringIO.new
+      @io    = dst ? dst : StringIO.new
       @cache = { nil => 0 }
     end
 
@@ -97,43 +97,44 @@ module Boss
     # 2 more refs will be creted.
     def put(ob)
       case ob
-      when Fixnum,Bignum
-        if ob < 0
-          whdr TYPE_NINT, -ob
-        else
-          whdr TYPE_INT, ob
-        end
-      when String
-        if notCached(ob)
-          if ob.encoding == Encoding::BINARY
-            whdr TYPE_BIN, ob.length
-            wbin ob
+        when Fixnum, Bignum
+          if ob < 0
+            whdr TYPE_NINT, -ob
           else
-            whdr TYPE_TEXT, ob.bytesize
-            wbin ob.dup.encode(Encoding::UTF_8)
+            whdr TYPE_INT, ob
           end
-        end
-      when Array
-        if notCached(ob)
-          whdr TYPE_LIST, ob.length
-          ob.each { |x| put(x) }
-        end
-      when Hash
-        if notCached(ob)
-          whdr TYPE_DICT, ob.length
-          ob.each { |k,v| self << k << v }
-        end
-      when Float
-        whdr TYPE_EXTRA, TDOUBLE
-        wdouble ob
-      when TrueClass, FalseClass
-        whdr TYPE_EXTRA, ob ? TTRUE : TFALSE
-      when nil
-        whdr TYPE_CREF, 0
-      else
-        error = "error: not supported object: #{ob}, #{ob.class}"
-        p error
-        raise NotSupportedException, error
+        when String, Symbol
+          ob = ob.to_s unless ob.is_a?(String)
+          if notCached(ob)
+            if ob.encoding == Encoding::BINARY
+              whdr TYPE_BIN, ob.length
+              wbin ob
+            else
+              whdr TYPE_TEXT, ob.bytesize
+              wbin ob.dup.encode(Encoding::UTF_8)
+            end
+          end
+        when Array
+          if notCached(ob)
+            whdr TYPE_LIST, ob.length
+            ob.each { |x| put(x) }
+          end
+        when Hash
+          if notCached(ob)
+            whdr TYPE_DICT, ob.length
+            ob.each { |k, v| self << k << v }
+          end
+        when Float
+          whdr TYPE_EXTRA, TDOUBLE
+          wdouble ob
+        when TrueClass, FalseClass
+          whdr TYPE_EXTRA, ob ? TTRUE : TFALSE
+        when nil
+          whdr TYPE_CREF, 0
+        else
+          error = "error: not supported object: #{ob}, #{ob.class}"
+          p error
+          raise NotSupportedException, error
       end
       self
     end
@@ -181,7 +182,7 @@ module Boss
     ##
     # write standard record header with code and value
     #
-    def whdr(code,value)
+    def whdr(code, value)
       checkArg code.between?(0, 7)
       checkArg value >= 0
       #      p "WHDR #{code}, #{value}"
@@ -205,9 +206,9 @@ module Boss
     def sizeBytes(value)
       checkArg value >= 0
       mval = 0x100
-      cnt = 1
+      cnt  = 1
       while value >= mval
-        cnt += 1
+        cnt  += 1
         mval <<= 8
       end
       cnt
@@ -260,26 +261,26 @@ module Boss
     def get
       code, value = rhdr
       case code
-      when TYPE_INT
-        return value
-      when TYPE_NINT
-        return -value
-      when TYPE_TEXT, TYPE_BIN
-        s = rbin value
-        s.force_encoding code == TYPE_BIN ? Encoding::BINARY : Encoding::UTF_8
-        @cache << s
-        return s
-      when TYPE_LIST
-        #        p "items", value
-        @cache << (list = [])
-        value.times { list << get }
-        return list
-      when TYPE_DICT
-        @cache << (dict = {})
-        value.times { dict[get] = get }
-        return dict
-      when TYPE_CREF
-        return @cache[value]
+        when TYPE_INT
+          return value
+        when TYPE_NINT
+          return -value
+        when TYPE_TEXT, TYPE_BIN
+          s = rbin value
+          s.force_encoding code == TYPE_BIN ? Encoding::BINARY : Encoding::UTF_8
+          @cache << s
+          return s
+        when TYPE_LIST
+          #        p "items", value
+          @cache << (list = [])
+          value.times { list << get }
+          return list
+        when TYPE_DICT
+          @cache << (dict = { })
+          value.times { dict[get] = get }
+          return dict
+        when TYPE_CREF
+          return @cache[value]
       end
     end
 
@@ -301,16 +302,16 @@ module Boss
     ##
     # Read header and return code,value
     def rhdr
-      b = rbyte
+      b           = rbyte
       code, value = b & 7, b >> 3
       case value
-      when 0..22
-        return code, value
-      when 23...31
-        return code, rlongint(value-22)
-      else
-        n = renc
-        return code, rlongint(n)
+        when 0..22
+          return code, value
+        when 23...31
+          return code, rlongint(value-22)
+        else
+          n = renc
+          return code, rlongint(n)
       end
     end
 
@@ -320,7 +321,7 @@ module Boss
       res = i = 0
       bytes.times do
         res |= rbyte << i
-        i += 8
+        i   += 8
       end
       res
     end
@@ -330,7 +331,7 @@ module Boss
     def renc
       value = i = 0
       loop do
-        x = rbyte
+        x     = rbyte
         value |= (x&0x7f) << i
         return value if x & 0x80 != 0
         i += 7
@@ -366,7 +367,7 @@ module Boss
 
   # Load all objects from the src and return them as an array
   def Boss.load_all src
-    p = Parser.new(src)
+    p   = Parser.new(src)
     res = []
     res << p.get while !p.eof?
     res
