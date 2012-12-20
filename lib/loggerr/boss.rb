@@ -1,5 +1,7 @@
 # Encoding: utf-8
 require 'stringio'
+require 'zlib'
+require 'bzip2'
 
 # Copyright (C) 2008 Sergey S. Chernov
 #
@@ -64,10 +66,14 @@ module Boss
 
   TTRUE  = 12
   TFALSE = 13
-                 # TBOOLEAN = 12
-                 # TREDOBJECT = 12#: __reduce__ - based object, python only, do not use elsewhere!
+
+  TCOMPRESSED = 14
+
   def checkArg(cond, msg=nil)
     raise ArgumentError unless cond
+  end
+
+  class UnknownTypeException < Exception;
   end
 
   ##
@@ -83,8 +89,26 @@ module Boss
     # or create StringIO one as output
     #
     def initialize(dst=nil)
-      @io    = dst ? dst : StringIO.new
+      @io = dst ? dst : StringIO.new('', 'wb')
+      @io.set_encoding 'binary'
       @cache = { nil => 0 }
+    end
+
+    def put_compressed ob
+      data = Boss.dump(ob)
+      whdr TYPE_EXTRA, TCOMPRESSED
+      type = case data.length
+               when 0..160
+                 0
+               when 161..8192
+                 data = Zlib::Deflate.new.deflate(data, Zlib::FINISH)
+                 1
+               else
+                 data = Bzip2.compress data
+                 2
+             end
+      whdr type, data.length
+      wbin data
     end
 
     ##
@@ -125,8 +149,17 @@ module Boss
             ob.each { |k, v| self << k << v }
           end
         when Float
-          whdr TYPE_EXTRA, TDOUBLE
-          wdouble ob
+          case ob
+            when 0
+              whdr TYPE_EXTRA, DZERO
+            when -1.0
+              whdr TYPE_EXTRA, DMINUSONE
+            when +1.0
+              whdr TYPE_EXTRA, DONE
+            else
+              whdr TYPE_EXTRA, TDOUBLE
+              wdouble ob
+          end
         when TrueClass, FalseClass
           whdr TYPE_EXTRA, ob ? TTRUE : TFALSE
         when nil
@@ -265,6 +298,36 @@ module Boss
           return value
         when TYPE_NINT
           return -value
+        when TYPE_EXTRA
+          case value
+            when TTRUE
+              true
+            when TFALSE
+              false
+            when DZERO, FZERO
+              0
+            when DONE, FONE
+              1.0
+            when DMINUSONE, FMINUSONE
+              -1.0
+            when TDOUBLE
+              rdouble
+            when TCOMPRESSED
+              type, size = rhdr
+              data       = rbin size
+              case type
+                when 0
+                  Boss.load data
+                when 1
+                  Boss.load Zlib::Inflate.new(Zlib::MAX_WBITS).inflate(data)
+                when 2
+                  Boss.load Bzip2.uncompress data
+                else
+                  raise UnknownTypeException, "type #{type}"
+              end
+            else
+              raise UnknownTypeException
+          end
         when TYPE_TEXT, TYPE_BIN
           s = rbin value
           s.force_encoding code == TYPE_BIN ? Encoding::BINARY : Encoding::UTF_8
@@ -281,6 +344,8 @@ module Boss
           return dict
         when TYPE_CREF
           return @cache[value]
+        else
+          raise UnknownTypeException
       end
     end
 
@@ -342,6 +407,10 @@ module Boss
       @io.readbyte
     end
 
+    def rdouble
+      rbin(8).unpack('E')[0]
+    end
+
     def rbin(length)
       @io.sysread length
     end
@@ -382,6 +451,13 @@ module Boss
     roots.each { |r| f << r }
     f.string
   end
+
+  def Boss.dump_compressed(*roots)
+    f = f = Formatter.new
+    roots.each { |r| f.put_compressed r }
+    f.string
+  end
+
 
 end
 
