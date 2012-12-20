@@ -19,17 +19,15 @@ module Loggerr
       cipher.encrypt
       iv = cipher.random_iv
       cipher.key = @key
-      'LR' + iv + cipher.update(data) + cipher.update(Digest::MD5.digest(data)) + cipher.final
+      iv + cipher.update(data) + cipher.update(Digest::MD5.digest(data)) + cipher.final
     end
 
     def decrypt ciphertext
       cipher = OpenSSL::Cipher.new('AES-128-CBC')
       cipher.decrypt
-      version = ciphertext[0..1]
-      version == 'LR' or raise InvalidPackage
-      cipher.iv = ciphertext[2..17]
+      cipher.iv = ciphertext[0..15]
       cipher.key = @key
-      data = cipher.update(ciphertext[18..-1]) + cipher.final
+      data = cipher.update(ciphertext[16..-1]) + cipher.final
       data, digest = data[0...-16], data[-16..-1]
       digest == Digest::MD5.digest(data) or raise InvalidPackage
       data
