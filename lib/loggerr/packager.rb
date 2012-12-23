@@ -1,7 +1,7 @@
-require 'loggerr/boss'
 require 'base64'
 require 'openssl'
 require 'digest/md5'
+require 'boss-protocol'
 
 module Loggerr
 
