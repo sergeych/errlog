@@ -18,6 +18,6 @@ Gem::Specification.new do |gem|
   gem.require_paths = ["lib"]
 
   gem.add_dependency 'bzip2-ruby'
-  gem.add_dependency 'boss-protocol'
+  gem.add_dependency 'boss-protocol', '>= 0.1.2'
   gem.add_development_dependency "rspec"
 end
