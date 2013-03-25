@@ -1,4 +1,5 @@
 require 'loggerr/version'
+require 'loggerr/packager'
 require 'boss-protocol'
 require 'hashie'
 require 'thread'
