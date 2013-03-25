@@ -72,5 +72,4 @@ describe 'Packager' do
       end
     }.should raise_error
   end
-
 end

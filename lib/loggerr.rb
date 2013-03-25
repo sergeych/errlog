@@ -2,6 +2,7 @@ require 'loggerr/version'
 require 'boss-protocol'
 require 'hashie'
 require 'thread'
+require 'httpclient'
 
 module Loggerr
   # Your code goes here...
@@ -13,6 +14,8 @@ module Loggerr
   def self.configure id, key, opts={}
     @@app_id, @@app_secret, @options = id, key, opts
     @@packager = packager @@app_id, @@app_secret
+    @@host = opts[:host] || "http://loggerr.com"
+    @@client = HTTPClient.new @@host
   end
 
   def self.pack data
@@ -51,11 +54,13 @@ module Loggerr
     ctx.stack = e.backtrace
     ctx.severity = 100
     ctx.time = Time.now
-    post(pack(context.to_hash))
+    post(pack(context))
   end
 
   def self.post data
-
+    Thread.start {
+      @@client.post "report/log", app_id: @@app_id, data: data
+    }
   end
 
 end
