@@ -6,8 +6,9 @@ require 'loggerr'
 
 describe Loggerr do
 
-	it 'it should report errors to loggerr service'
-	it 'it should create redmine tasks'
-	it 'should provide rails filter'
+  context 'rails integration' do
+    it 'should add logger to rails logs for a request'
+    it 'should report errors on uncaugth exception'
+  end
 
 end

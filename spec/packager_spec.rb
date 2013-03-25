@@ -1,5 +1,4 @@
 require 'spec_helper'
-#require 'loggerr'
 require 'loggerr/packager'
 
 describe 'Packager' do
@@ -32,7 +31,7 @@ describe 'Packager' do
     payload = { 'type' => 'log', 'payload' => "The test payload" }
     data    = @packager.pack payload
     p2 = Loggerr::Packager.new "TheOtherId", Base64.encode64("123456789012345678901234")
-    -> { p2.unpack(data) }.should raise_error Loggerr::Packager::InvalidPackage
+    p2.unpack(data).should == nil
   end
 
 end

@@ -7,7 +7,7 @@ module Loggerr
 
   class Packager
 
-    class InvalidPackage < Exception; end
+    # class InvalidPackage < Exception; end
 
     def initialize app_id, app_key
       @appid = app_id
@@ -39,10 +39,9 @@ module Loggerr
 
     def unpack block
       id, payload = Boss.load_all(decrypt(block))
-      id == @appid or raise InvalidPackage
-      payload
+      id == @appid ? payload : nil
     rescue
-      raise InvalidPackage
+      nil
     end
 
   end
