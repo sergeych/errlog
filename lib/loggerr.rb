@@ -4,9 +4,13 @@ require 'boss-protocol'
 require 'hashie'
 require 'thread'
 require 'httpclient'
+require 'weakref'
 
 module Loggerr
-  # Your code goes here...
+
+  ERROR   = 100
+  WARNING = 50
+  TRACE   = 1
 
   def self.packager id, key
     return Packager.new id, key
@@ -14,9 +18,16 @@ module Loggerr
 
   def self.configure id, key, opts={}
     @@app_id, @@app_secret, @options = id, key, opts
-    @@packager = packager @@app_id, @@app_secret
-    @@host = opts[:host] || "http://loggerr.com"
-    @@client = HTTPClient.new @@host
+    @@app_name                       = opts[:app_name]
+    @@packager                       = packager @@app_id, @@app_secret
+    @@host                           = opts[:host] || "http://loggerr.com"
+    @@client                         = HTTPClient.new
+    begin
+      Rails.env
+      @@rails = true
+    rescue
+      @@rails = false
+    end
   end
 
   def self.pack data
@@ -24,7 +35,7 @@ module Loggerr
   end
 
   def self.clear_context
-    ctx = Hashie::Mash.new
+    ctx                              = Hashie::Mash.new
     Thread.current[:loggerr_context] = ctx
     ctx
   end
@@ -39,7 +50,7 @@ module Loggerr
     begin
       yield
     rescue Exception => e
-      report e
+      report_exception e
       options[:retrhow] and raise
     end
   end
@@ -48,20 +59,37 @@ module Loggerr
     self.protect component_name, retrhow: true, &block
   end
 
-  def self.report e
-    ctx = self.context
-    ctx.exception = e.to_s
-    ctx.exception_class = e.class.name
-    ctx.stack = e.backtrace
-    ctx.severity = 100
-    ctx.time = Time.now
-    post(pack(context))
+  def self.report_exception e
+    self.context.stack = e.backtrace
+    report "#{e.class.name}: #{e.to_s}", Loggerr::ERROR
+  end
+
+  def self.report text, severity = Loggerr::ERROR
+    raise 'Loggerr is not configured. Use Loggerr.config' if !@@app_id || !@@app_secret
+    ctx      = self.context
+    ctx.text = text
+    @@app_name && !ctx.app_name and ctx.app_name = @@app_name
+    ctx.time     = Time.now
+    ctx.severity = severity
+    ctx.platform ||= @@rails ? 'rails' : 'ruby'
+    post(pack(ctx))
+    clear_context
   end
 
   def self.post data
-    Thread.start {
-      @@client.post "report/log", app_id: @@app_id, data: data
+    @@send_threads ||= []
+
+    t = Thread.start {
+      #puts "sending to #{@@host}"
+      res = @@client.post "#{@@host}/reports/log", app_id: @@app_id, data: Base64::encode64(data)
+      puts STDERR, "Error sending report: #{res.status}" if res.status != 200
     }
+    @@send_threads << WeakRef.new(t)
+  end
+
+  def self.wait
+    @@send_threads.each { |t| t.weakref_alive? and t.join }
+    @@send_threads == []
   end
 
 end
