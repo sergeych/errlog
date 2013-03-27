@@ -29,16 +29,16 @@ module Loggerr
       cipher.key = @key
       data = cipher.update(ciphertext[16..-1]) + cipher.final
       data, digest = data[0...-16], data[-16..-1]
-      digest == Digest::MD5.digest(data) or raise InvalidPackage
-      data
+      digest == Digest::MD5.digest(data) ? data : nil
     end
 
     def pack payload
-      encrypt(Boss.dump @appid, payload)
+      "\x00#{encrypt(Boss.dump @appid, payload)}"
     end
 
     def unpack block
-      id, payload = Boss.load_all(decrypt(block))
+      block[0].to_i == 0 or return nil
+      id, payload = Boss.load_all(decrypt(block[1..-1]))
       id == @appid ? payload : nil
     rescue
       nil
