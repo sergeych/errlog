@@ -1,6 +1,9 @@
 require 'loggerr/version'
 require 'loggerr/packager'
+require 'loggerr/constants'
+require 'loggerr/chain_loggger'
 require 'boss-protocol'
+require 'loggerr/context'
 require 'hashie'
 require 'thread'
 require 'httpclient'
@@ -8,9 +11,18 @@ require 'weakref'
 
 module Loggerr
 
-  ERROR   = 100
-  WARNING = 50
-  TRACE   = 1
+  include Loggerr::Constants
+
+  def self.severity_name code
+    case code
+      when TRACE...WARNING;
+        'trace'
+      when WARNING...ERROR;
+        'warning'
+      else
+        ; 'error'
+    end
+  end
 
   def self.packager id, key
     return Packager.new id, key
@@ -30,12 +42,44 @@ module Loggerr
     end
   end
 
+  def self.app_name
+    @@app_name #rescue nil
+  end
+
+  def self.configured?
+    @@app_id && @@app_secret
+  end
+
+  def self.default_platform
+    @@rails ? 'rails' : 'ruby'
+  end
+
   def self.pack data
     @@packager.pack(data)
   end
 
+  def self.create_logger with_logger=nil
+    self.context.create_logger with_logger
+  end
+
+  def self.protect component_name=nil, options={}, &block
+     context.protect component_name, options, &block
+  end
+
+  def self.protect_rethrow component_name=nil, &block
+    context.protect_rethrow component_name, &block
+  end
+
+  def self.report_exception e, &block
+    self.context.report_exception e, &block
+  end
+
+  def self.report text, severity = Loggerr::ERROR, &block
+    self.context.report text, severity, &block
+  end
+
   def self.clear_context
-    ctx                              = Hashie::Mash.new
+    ctx                              = Loggerr::Context.new
     Thread.current[:loggerr_context] = ctx
     ctx
   end
@@ -44,40 +88,10 @@ module Loggerr
     Thread.current[:loggerr_context] || clear_context
   end
 
-  def self.protect component_name=nil, options={}
-    ctx = clear_context
-    component_name and ctx.component_name = component_name
-    begin
-      yield
-    rescue Exception => e
-      report_exception e
-      options[:retrhow] and raise
-    end
-  end
+  private
 
-  def self.protect_rethrow component_name=nil, &block
-    self.protect component_name, retrhow: true, &block
-  end
-
-  def self.report_exception e, &block
-    self.context.stack = e.backtrace
-    report "#{e.class.name}: #{e.to_s}", Loggerr::ERROR
-  end
-
-  def self.report text, severity = Loggerr::ERROR, &block
-    raise 'Loggerr is not configured. Use Loggerr.config' if !@@app_id || !@@app_secret
-    ctx      = self.context
-    ctx.text = text
-    @@app_name && !ctx.app_name and ctx.app_name = @@app_name
-    ctx.time     = Time.now
-    ctx.severity = severity
-    ctx.platform ||= @@rails ? 'rails' : 'ruby'
-    ctx.stack ||= caller
-    post(pack(ctx), &block)
-    clear_context
-  end
-
-  def self.post data
+  def self.post src
+    data = pack(src)
     @@send_threads ||= []
 
     t = Thread.start {
