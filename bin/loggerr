@@ -2,6 +2,7 @@
 require 'loggerr'
 require 'yaml'
 require 'ostruct'
+require 'colorize'
 
 def usage
   puts <<End
@@ -34,8 +35,15 @@ or down the tree. Command-line parameters override these from configuration file
 
 Note that configuration file will not be used if both id and key are set in the command line
 arguments!
+
+exit status: 100 - error in arguments, 10 - failed to send, 0 - successfully sent
 End
   exit 100
+end
+
+def error text
+  STDOUT.puts "\n*** Error: #{text}".red
+  usage
 end
 
 usage if ARGV.length == 0
@@ -73,8 +81,7 @@ begin
     end
   end
 rescue
-  puts "Error parsing arguments"
-  usage
+  error "Error parsing arguments"
 end
 
 def search_down_the_tree(path, name)
@@ -87,7 +94,7 @@ end
 
 if !key || !id
   unless (cfile = search_down_the_tree(Dir::pwd, '.loggerr.yml'))
-    puts "Neither id/key or configuration file were found"
+    error "Neither id/key or configuration file was found"
     usage
   end
   cfg = OpenStruct.new YAML::load_file(cfile)
@@ -98,17 +105,18 @@ if !key || !id
 end
 
 if !key || !id || text==''
-  puts "You must specify at least id, key and text"
+  error "You must specify at least id, key and text"
   usage
 end
 
-text ||= 'The test again!!!'
-
 usage if !key || !id || text.length == 0
 
-#puts "Sending loggerr report id=#{id} key=#{key} host=#{host}: (#{severity}): #{text}"
 Loggerr.configure id, key, {host: host}
 Loggerr.context.platform = platform
 Loggerr.context.application = app
-Loggerr.report text, severity
+
+Loggerr.report text, severity do |error|
+  STDERR.puts "Error: #{error}".red if error
+  exit error ? 10 : 0
+end
 Loggerr.wait

@@ -23,5 +23,6 @@ Gem::Specification.new do |gem|
   gem.add_dependency 'boss-protocol', '>= 0.1.2'
   gem.add_dependency 'hashie', '>= 1.2.0'
   gem.add_dependency 'httpclient', '>= 2.3'
+  gem.add_dependency 'colorize'
   gem.add_development_dependency "rspec"
 end

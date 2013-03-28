@@ -1,7 +1,8 @@
 # Loggerr
 
-*ATTENTION! this gem is not yet functional, please don't try to use until
-version 0.1.* will be released!* You are forewarned.
+*ATTENTION!*
+
+This is a reporting tool tor loggerr service, that is not yet open for public test.
 
 
 The rest is a template for not to type it later on. Please ignore.

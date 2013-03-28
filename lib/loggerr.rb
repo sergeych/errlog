@@ -59,12 +59,12 @@ module Loggerr
     self.protect component_name, retrhow: true, &block
   end
 
-  def self.report_exception e
+  def self.report_exception e, &block
     self.context.stack = e.backtrace
     report "#{e.class.name}: #{e.to_s}", Loggerr::ERROR
   end
 
-  def self.report text, severity = Loggerr::ERROR
+  def self.report text, severity = Loggerr::ERROR, &block
     raise 'Loggerr is not configured. Use Loggerr.config' if !@@app_id || !@@app_secret
     ctx      = self.context
     ctx.text = text
@@ -72,7 +72,8 @@ module Loggerr
     ctx.time     = Time.now
     ctx.severity = severity
     ctx.platform ||= @@rails ? 'rails' : 'ruby'
-    post(pack(ctx))
+    ctx.stack ||= caller
+    post(pack(ctx), &block)
     clear_context
   end
 
@@ -81,8 +82,14 @@ module Loggerr
 
     t = Thread.start {
       #puts "sending to #{@@host}"
-      res = @@client.post "#{@@host}/reports/log", app_id: @@app_id, data: Base64::encode64(data)
-      puts STDERR, "Error sending report: #{res.status}" if res.status != 200
+      error = nil
+      begin
+        res = @@client.post "#{@@host}/reports/log", app_id: @@app_id, data: Base64::encode64(data)
+        error = "report refused: #{res.status}" if res.status != 200
+      rescue Exception => e
+        error = e
+      end
+      yield error if block_given?
     }
     @@send_threads << WeakRef.new(t)
   end
