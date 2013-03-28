@@ -54,6 +54,10 @@ module Loggerr
     @@rails ? 'rails' : 'ruby'
   end
 
+  def self.rails?
+    @@rails
+  end
+
   def self.pack data
     @@packager.pack(data)
   end

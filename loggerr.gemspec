@@ -20,7 +20,7 @@ Gem::Specification.new do |gem|
 
   gem.required_ruby_version = '>= 1.9.2'
 
-  gem.add_dependency 'boss-protocol', '>= 0.1.2'
+  gem.add_dependency 'boss-protocol', '>= 0.1.3'
   gem.add_dependency 'hashie', '>= 1.2.0'
   gem.add_dependency 'httpclient', '>= 2.3'
   gem.add_dependency 'colorize'

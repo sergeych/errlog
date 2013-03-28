@@ -30,7 +30,10 @@ module Loggerr
       self.severity = severity
       self.platform ||= Loggerr.default_platform
       self.stack    ||= caller
-      @loggers.length > 0 and self.log = @loggers.reduce([]){ |all,x| all + x.buffer }.sort { |x,y| x[1] <=> y[1] }
+      @loggers and self.log = @loggers.reduce([]){ |all,x| all + x.buffer }.sort { |x,y| x[1] <=> y[1] }
+
+      Loggerr.rails? and self.rails_root = Rails.root.to_s
+
       Loggerr.post(self.to_hash, &block)
     end
 
