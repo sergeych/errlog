@@ -1,17 +1,17 @@
-require 'loggerr/version'
-require 'loggerr/packager'
-require 'loggerr/constants'
-require 'loggerr/chain_loggger'
+require 'errlog/version'
+require 'errlog/packager'
+require 'errlog/constants'
+require 'errlog/chain_loggger'
 require 'boss-protocol'
-require 'loggerr/context'
+require 'errlog/context'
 require 'hashie'
 require 'thread'
 require 'httpclient'
 require 'weakref'
 
-module Loggerr
+module Errlog
 
-  include Loggerr::Constants
+  include Errlog::Constants
 
   def self.severity_name code
     case code
@@ -32,7 +32,7 @@ module Loggerr
     @@app_id, @@app_secret, @options = id, key, opts
     @@app_name                       = opts[:app_name]
     @@packager                       = packager @@app_id, @@app_secret
-    @@host                           = opts[:host] || "http://loggerr.com"
+    @@host                           = opts[:host] || "http://errlog.com"
     @@client                         = HTTPClient.new
     begin
       Rails.env
@@ -78,18 +78,18 @@ module Loggerr
     self.context.report_exception e, &block
   end
 
-  def self.report text, severity = Loggerr::ERROR, &block
+  def self.report text, severity = Errlog::ERROR, &block
     self.context.report text, severity, &block
   end
 
   def self.clear_context
-    ctx                              = Loggerr::Context.new
-    Thread.current[:loggerr_context] = ctx
+    ctx                              = Errlog::Context.new
+    Thread.current[:errlog_context] = ctx
     ctx
   end
 
   def self.context
-    Thread.current[:loggerr_context] || clear_context
+    Thread.current[:errlog_context] || clear_context
   end
 
   private

@@ -1,5 +1,5 @@
 #!/usr/bin/env ruby
-require 'loggerr'
+require 'errlog'
 require 'yaml'
 require 'ostruct'
 require 'colorize'
@@ -7,11 +7,11 @@ require 'colorize'
 def usage
   puts <<End
 
-Loggerr reporting tool (visit http://loggerr.com for details)
+Errlog reporting tool (visit http://errlog.com for details)
 
 Usage:
 
-  loggerr [params] "text to report"
+  errlog [params] "text to report"
 
 Parameters
 
@@ -30,7 +30,7 @@ Parameters
   -a appname
     set the application name
 
-Some/all of there parameters might be set in the .loggerr.yml file in the current path
+Some/all of there parameters might be set in the .errlog.yml file in the current path
 or down the tree. Command-line parameters override these from configuration file.
 
 Note that configuration file will not be used if both id and key are set in the command line
@@ -66,9 +66,9 @@ begin
       when /^--local/
         host = "http://localhost:3000"
       when /^--warn/
-        severity = Loggerr::WARNING
+        severity = Errlog::WARNING
       when /^--trace/
-        severity = Loggerr::TRACE
+        severity = Errlog::TRACE
       when '-a'
         app = ARGV[n]
         n += 1
@@ -93,7 +93,7 @@ def search_down_the_tree(path, name)
 end
 
 if !key || !id
-  unless (cfile = search_down_the_tree(Dir::pwd, '.loggerr.yml'))
+  unless (cfile = search_down_the_tree(Dir::pwd, '.errlog.yml'))
     error "Neither id/key or configuration file was found"
     usage
   end
@@ -111,12 +111,12 @@ end
 
 usage if !key || !id || text.length == 0
 
-Loggerr.configure id, key, {host: host}
-Loggerr.context.platform = platform
-Loggerr.context.application = app
+Errlog.configure id, key, {host: host}
+Errlog.context.platform = platform
+Errlog.context.application = app
 
-Loggerr.report text, severity do |error|
+Errlog.report text, severity do |error|
   STDERR.puts "Error: #{error}".red if error
   exit error ? 10 : 0
 end
-Loggerr.wait
+Errlog.wait

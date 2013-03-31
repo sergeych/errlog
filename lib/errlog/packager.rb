@@ -3,7 +3,7 @@ require 'openssl'
 require 'digest/md5'
 require 'boss-protocol'
 
-module Loggerr
+module Errlog
 
   class Packager
 

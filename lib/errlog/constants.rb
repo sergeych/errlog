@@ -1,4 +1,4 @@
-module Loggerr
+module Errlog
   module Constants
 
     ERROR     = 100

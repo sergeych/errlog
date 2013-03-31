@@ -1,8 +1,8 @@
-# Loggerr
+# Errlog
 
 *ATTENTION!*
 
-This is a reporting tool tor loggerr service, that is not yet open for public test.
+This is a reporting tool tor errlog service, that is not yet open for public test.
 
 
 The rest is a template for not to type it later on. Please ignore.
@@ -12,7 +12,7 @@ The rest is a template for not to type it later on. Please ignore.
 
 Add this line to your application's Gemfile:
 
-    gem 'loggerr'
+    gem 'errlog'
 
 And then execute:
 
@@ -20,7 +20,7 @@ And then execute:
 
 Or install it yourself as:
 
-    $ gem install loggerr
+    $ gem install errlog
 
 ## Usage
 

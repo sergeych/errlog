@@ -1,14 +1,14 @@
 # -*- encoding: utf-8 -*-
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'loggerr/version'
+require 'errlog/version'
 
 Gem::Specification.new do |gem|
-  gem.name          = "loggerr"
-  gem.version       = Loggerr::VERSION
+  gem.name          = "errlog"
+  gem.version       = Errlog::VERSION
   gem.authors       = ["sergeych"]
   gem.email         = ["real.sergeych@gmail.com"]
-  gem.description   = %q{Logger and error reporter agent for loggerr service}
+  gem.description   = %q{Logger and error reporter agent for errlog service}
   gem.summary       = %q{under development}
   gem.homepage      = ""
 

@@ -1,6 +1,6 @@
 require 'hashie'
 
-module Loggerr
+module Errlog
   class Context < Hashie::Mash
 
     def protect component_name=nil, options={}
@@ -19,26 +19,24 @@ module Loggerr
 
     def report_exception e, &block
       self.stack = e.backtrace
-      report "#{e.class.name}: #{e.to_s}", Loggerr::ERROR
+      report "#{e.class.name}: #{e.to_s}", Errlog::ERROR
     end
 
-    def report text, severity = Loggerr::ERROR, &block
-      raise 'Loggerr is not configured. Use Loggerr.config' unless Loggerr.configured?
-      self.text = text
-      !self.app_name and self.app_name = Loggerr.app_name
+    def report text, severity = Errlog::ERROR, &block
+      raise 'Errlog is not configured. Use Errlog.config' unless Errlog.configured?
+      !self.app_name and self.app_name = Errlog.app_name
       self.time     = Time.now
       self.severity = severity
-      self.platform ||= Loggerr.default_platform
+      self.platform ||= Errlog.default_platform
       self.stack    ||= caller
+      self.text = text
       @loggers and self.log = @loggers.reduce([]){ |all,x| all + x.buffer }.sort { |x,y| x[1] <=> y[1] }
-
-      Loggerr.rails? and self.rails_root = Rails.root.to_s
-
-      Loggerr.post(self.to_hash, &block)
+      Errlog.rails? and self.rails_root = Rails.root.to_s
+      Errlog.post(self.to_hash, &block)
     end
 
     def create_logger with_logger=nil
-      l = Loggerr::ChainLogger.new(with_logger)
+      l = Errlog::ChainLogger.new(with_logger)
       (@loggers ||= []) << l
       l
     end

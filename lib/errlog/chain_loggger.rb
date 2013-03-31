@@ -1,6 +1,6 @@
 require 'logger'
 
-module Loggerr
+module Errlog
 
   class ChainLogger < Logger
 
