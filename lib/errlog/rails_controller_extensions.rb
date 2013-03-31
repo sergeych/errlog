@@ -4,6 +4,9 @@ module Errlog
     def self.included base
       base.send :prepend_around_filter, :errlog_exceptions_trap
       base.send :helper_method, :errlog_context
+      base.send :helper_method, :errlog_report
+      base.send :helper_method, :errlog_collect_context
+      base.send :helper_method, :errlog_exception
       true
     end
 
@@ -24,6 +27,27 @@ module Errlog
       yield
 
     rescue Exception => e
+      errlog_collect_context ctx
+      ctx.report_exception e
+      raise
+
+    ensure
+      Rails.logger                  = rl.prev_logger
+      ActionController::Base.logger = acl.prev_logger
+      arl and ActiveRecord::Base.logger = arl.prev_logger
+      true
+    end
+
+    def errlog_exception e, context = nil
+      errlog_collect_context(context).report_exception e
+    end
+
+    def errlog_report text, severity = Errlog::ERROR, context=nil
+      errlog_collect_context(context).report text, severity
+    end
+
+    def errlog_collect_context ctx=nil
+      ctx ||= errlog_context
       ctx.component = request.path
       ctx.params    = params
       headers       = {}
@@ -59,15 +83,7 @@ module Errlog
       if request.url =~ %r|^https?://(.+?)[/:]|
         ctx.application = $1
       end
-
-      @errlog_context.report_exception e
-      raise
-
-    ensure
-      Rails.logger                  = rl.prev_logger
-      ActionController::Base.logger = acl.prev_logger
-      arl and ActiveRecord::Base.logger = arl.prev_logger
-      true
+      ctx
     end
 
   end
