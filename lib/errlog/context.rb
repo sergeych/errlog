@@ -22,6 +22,14 @@ module Errlog
       report "#{e.class.name}: #{e.to_s}", Errlog::ERROR
     end
 
+    def report_warning text, &block
+      report text, Errlog::WARNING, &block
+    end
+
+    def report_trace text, &block
+      report text, Errlog::TRACE, &block
+    end
+
     def report text, severity = Errlog::ERROR, &block
       raise 'Errlog is not configured. Use Errlog.config' unless Errlog.configured?
       !self.app_name and self.app_name = Errlog.app_name

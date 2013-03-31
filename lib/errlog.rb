@@ -9,6 +9,10 @@ require 'thread'
 require 'httpclient'
 require 'weakref'
 
+if defined?(Rails)
+  require 'errlog/rails_controller_extensions'
+end
+
 module Errlog
 
   include Errlog::Constants

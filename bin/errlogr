@@ -11,7 +11,7 @@ Errlog reporting tool (visit http://errlog.com for details)
 
 Usage:
 
-  errlog [params] "text to report"
+  errlogr [params] "text to report"
 
 Parameters
 
