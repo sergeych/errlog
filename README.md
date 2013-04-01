@@ -2,7 +2,7 @@
 
 *ATTENTION!*
 
-This is a reporting tool tor errlog service, that is not yet open for public test.
+This is a reporting tool tor errlog.co service under development, not yet available fpr public.
 
 
 The rest is a template for not to type it later on. Please ignore.
