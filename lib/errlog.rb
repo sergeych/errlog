@@ -36,7 +36,7 @@ module Errlog
     @@app_id, @@app_secret, @options = id, key, opts
     @@app_name                       = opts[:app_name]
     @@packager                       = packager @@app_id, @@app_secret
-    @@host                           = opts[:host] || "http://errlog.co"
+    @@host                           = opts[:host] || "http://errorlog.co"
     @@client                         = HTTPClient.new
     @@rails = defined?(Rails)
   end

@@ -7,7 +7,7 @@ require 'colorize'
 def usage
   puts <<End
 
-Errlog reporting tool (visit http://errlog.com for details)
+Errlog reporting tool (visit http://errorlog.co for details)
 
 Usage:
 
@@ -28,13 +28,15 @@ Parameters
     set the platform value
 
   -a appname
-    set the application name
+    set the application name. 'default' if not set.
 
 Some/all of there parameters might be set in the .errlog.yml file in the current path
 or down the tree. Command-line parameters override these from configuration file.
 
 Note that configuration file will not be used if both id and key are set in the command line
 arguments!
+
+See details at http://errorlog.co/help/cli
 
 exit status: 100 - error in arguments, 10 - failed to send, 0 - successfully sent
 End
