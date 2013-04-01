@@ -52,7 +52,7 @@ module Errlog
 
     def errlog_collect_context ctx=nil
       ctx ||= errlog_context
-      ctx.component = request.path
+      ctx.component = "#{self.class.name}##{params[:action]}"
       ctx.params    = params
       headers       = {}
       request.headers.to_hash.each { |k, v|
