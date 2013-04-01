@@ -27,8 +27,12 @@ module Errlog
       yield
 
     rescue Exception => e
-      errlog_collect_context ctx
-      ctx.report_exception e
+      if Errlog.configured?
+        errlog_collect_context ctx
+        ctx.report_exception e
+      else
+        rl.prev_logger.error 'Errlog is not configured, can not report an exception'
+      end
       raise
 
     ensure

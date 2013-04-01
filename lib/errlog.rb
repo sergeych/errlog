@@ -46,7 +46,7 @@ module Errlog
   end
 
   def self.configured?
-    @@app_id && @@app_secret
+    defined?(@@app_id) && @@app_id && @@app_secret
   end
 
   def self.default_platform
