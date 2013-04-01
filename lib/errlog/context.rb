@@ -19,7 +19,7 @@ module Errlog
 
     def report_exception e, &block
       self.stack = e.backtrace
-      report "#{e.class.name}: #{e.to_s}", Errlog::ERROR
+      report "#{e.to_s}", Errlog::ERROR
     end
 
     def report_warning text, &block
