@@ -50,13 +50,15 @@ module Errlog
       errlog_collect_context(context).report text, severity
     end
 
+    @@headers_exclusion_keys = %w|async. action_dispatch. cookie rack. warden action_controller.|
+
     def errlog_collect_context ctx=nil
       ctx ||= errlog_context
       ctx.component = "#{self.class.name}##{params[:action]}"
       ctx.params    = params
       headers       = {}
       request.headers.to_hash.each { |k, v|
-        next if k =~ /cookie/i || v.class.name =~ /cookie/i
+        next if @@headers_exclusion_keys.any? { |s| k.starts_with?(s) }
         res = nil
         case v
           when Hash
