@@ -19,13 +19,13 @@ describe Errlog do
     Errlog.context.value.should == nil
   end
 
-  # This spec checks the whole chain - protect, report_exception, report, but does not check post
+  # This spec checks the whole chain - protect, exception, report, but does not check post
   it 'should provide protection' do
     Errlog.should_receive(:post).exactly(3).times do |payload|
       payload = Hashie::Mash.new payload
       payload.should_not be_nil
       payload.stack[0].should =~ /errlog_spec/
-      payload.text.should == 'RuntimeError: TestError'
+      payload.text.should == 'TestError'
       payload.time.should be_within(5000).of(Time.now)
       payload.component_name.should == 'test'
       payload.test.should == '123'
@@ -45,7 +45,7 @@ describe Errlog do
     }.should raise_error
 
     Errlog.context.test = '123'
-    Errlog.report 'RuntimeError: TestError'
+    Errlog.report 'TestError'
   end
 
   it 'should provide logs' do
@@ -57,8 +57,8 @@ describe Errlog do
       payload.log[1][3].should == 'test warning'
     end
     sio = StringIO.new
-    l1 = Errlog.create_logger
-    l2 = Errlog.create_logger Logger.new(sio)
+    l1 = Errlog::ChainLogger.new
+    l2 = Errlog::ChainLogger.new Logger.new(sio)
     l1.info 'test info'
     l2.warn 'test warning'
     Errlog.report 'LogTest', Errlog::TRACE

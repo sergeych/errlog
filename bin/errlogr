@@ -66,7 +66,7 @@ begin
         id = ARGV[n]
         n += 1
       when /^--local/
-        host = "http://localhost:3000"
+        host = "http://localhost:8080"
       when /^--warn/
         severity = Errlog::WARNING
       when /^--trace/

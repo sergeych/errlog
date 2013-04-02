@@ -2,45 +2,22 @@ module Errlog
   module ControllerFilter
 
     def self.included base
-      base.send :prepend_around_filter, :errlog_exceptions_trap
+      base.send :prepend_before_filter, :errlog_connect_context
+      base.send :rescue_from, Exception, :with => :errlog_report_exceptons
       base.send :helper_method, :errlog_context
-      base.send :helper_method, :errlog_report
-      base.send :helper_method, :errlog_collect_context
-      base.send :helper_method, :errlog_exception
       base.send :helper_method, :errlog_not_found
-      true
     end
 
+
+    # Get the context that is linked to the current request and will
+    # pass all its data if reporting will be called.
+    # Dafault Loggerr.context might not always be connected to the request.
+    #
     def errlog_context
-      @errlog_context || Errlog.clear_context
-    end
-
-    def errlog_exceptions_trap
-      ctx = @errlog_context = Errlog.clear_context
-
-      rl  = Rails.logger = ctx.create_logger Rails.logger
-      acl = ActionController::Base.logger = ctx.create_logger ActionController::Base.logger
-      arl = nil
-      if defined?(ActiveRecord)
-        arl = ActiveRecord::Base.logger = ctx.create_logger ActiveRecord::Base.logger
+      unless @errlog_context
+        errlog_connect_context
       end
-
-      yield
-
-    rescue Exception => e
-      if Errlog.configured?
-        errlog_collect_context ctx
-        errlog_exception e, ctx
-      else
-        rl.prev_logger.error 'Errlog is not configured, can not report an exception'
-      end
-      raise
-
-    ensure
-      Rails.logger                  = rl.prev_logger
-      ActionController::Base.logger = acl.prev_logger
-      arl and ActiveRecord::Base.logger = arl.prev_logger
-      true
+      @errlog_context
     end
 
     # Helper for 404's or like. Can be used as the trap.
@@ -57,11 +34,11 @@ module Errlog
     #
     def errlog_not_found text = 'Resource not found'
       errlog_context.not_found = true
-      if text.is_a?(Exception)
-        errlog_exception text, nil, Errlog::WARNING
-      else
-        errlog_report text, Errlog::WARNING
-      end
+      #if text.is_a?(Exception)
+      #  errlog_context.exception text, Errlog::WARNING
+      #else
+        errlog_context.warning text.to_s
+      #end
       respond_to do |format|
         format.html {
           render :file => "#{Rails.root}/public/404.html", :status => :not_found
@@ -71,12 +48,18 @@ module Errlog
       end
     end
 
-    def errlog_exception e, context = nil, severity = Errlog::ERROR
-      errlog_collect_context(context).report_exception e, severity
+    private
+
+    def errlog_connect_context
+      @errlog_context = Errlog.clear_context
+      @errlog_context.before_report {
+        errlog_collect_context
+      }
+      true
     end
 
-    def errlog_report text, severity = Errlog::ERROR, context=nil
-      errlog_collect_context(context).report text, severity
+    def errlog_report_exceptons e
+      errlog_context.exception e
     end
 
     def parametrize obj
@@ -95,6 +78,8 @@ module Errlog
     end
 
     @@headers_exclusion_keys = %w|async. action_dispatch. cookie rack. rack-cache. warden action_controller.|
+
+    public
 
     def errlog_collect_context ctx=nil
       ctx ||= errlog_context
@@ -117,7 +102,6 @@ module Errlog
         end
         headers[k.to_s] = res
       }
-      headers.each { |k,v| puts "--H--> #{k} -> #{v}" }
       ctx.headers = headers
       if respond_to?(:current_user)
         ctx.current_user = if current_user
@@ -131,13 +115,13 @@ module Errlog
       end
       ctx.url = request.url
       ctx.remote_ip = request.remote_ip
-      if request.url =~ %r|^https?://(.+?)[/:]|
+      if Errlog.application.blank? && request.url =~ %r|^https?://(.+?)[/:]|
         ctx.application = $1
       end
       ctx
     end
-
   end
+
 end
 
 ActionController::Base.send :include, Errlog::ControllerFilter

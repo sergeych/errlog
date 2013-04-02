@@ -8,7 +8,7 @@ module Errlog
       begin
         yield self
       rescue Exception => e
-        report_exception e
+        exception e
         options[:retrhow] and raise
       end
     end
@@ -17,37 +17,61 @@ module Errlog
       self.protect component_name, retrhow: true, &block
     end
 
-    def report_exception e, severity=Errlog::ERROR, &block
+    def exception e, severity=Errlog::ERROR, &block
       self.stack = e.backtrace
-      self.details = e.to_s
-      report "#{e.class.name}", severity
+      self.exception_class = e.class.name
+      report e.to_s, severity
     end
 
-    def report_warning text, &block
-      report text, Errlog::WARNING, &block
+    def trace text, details=nil, severity=Errlog::TRACE, &block
+      details and self.details = details
+      report text, severity
     end
 
-    def report_trace text, &block
-      report text, Errlog::TRACE, &block
+    def warning text, details=nil, severity=Errlog::WARNING, &block
+      details and self.details = details
+      report text, severity
+    end
+
+    def error text, details=nil, severity=Errlog::ERROR, &block
+      details and self.details = details
+      report text, severity
+    end
+
+    def before_report &block
+      (@before_handlers ||= []) << block
     end
 
     def report text, severity = Errlog::ERROR, &block
       raise 'Errlog is not configured. Use Errlog.config' unless Errlog.configured?
-      !self.app_name and self.app_name = Errlog.app_name
+      !self.application and self.application = Errlog.application
       self.time     = Time.now
       self.severity = severity
       self.platform ||= Errlog.default_platform
       self.stack    ||= caller
       self.text = text
-      @loggers and self.log = @loggers.reduce([]){ |all,x| all + x.buffer }.sort { |x,y| x[1] <=> y[1] }
+
+      if @before_handlers
+        @before_handlers.each { |h|
+          h.call self
+        }
+      end
+
+      @log_records and self.log = @log_records.inject([]){ |all,x| all << x; all}.sort { |x,y| x[1] <=> y[1] }
       Errlog.rails? and self.rails_root = Rails.root.to_s
       Errlog.post(self.to_hash, &block)
     end
 
-    def create_logger with_logger=nil
-      l = Errlog::ChainLogger.new(with_logger)
-      (@loggers ||= []) << l
-      l
+    MAX_LOG_LINES = 100
+
+    def add_log_record record
+      @log_records ||= []
+      @log_records << record
+      if @log_records.length > MAX_LOG_LINES
+        @log_records.delete_at(0)
+        self.log_truncated = true
+      end
     end
+
   end
 end

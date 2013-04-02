@@ -8,6 +8,8 @@ require 'hashie'
 require 'thread'
 require 'httpclient'
 require 'weakref'
+require 'stringio'
+require 'httpclient/uploadio'
 
 if defined?(Rails)
   require 'errlog/rails_controller_extensions'
@@ -34,15 +36,40 @@ module Errlog
 
   def self.configure id, key, opts={}
     @@app_id, @@app_secret, @options = id, key, opts
-    @@app_name                       = opts[:app_name]
+    @@application                    = opts[:application] || ''
     @@packager                       = packager @@app_id, @@app_secret
     @@host                           = opts[:host] || "http://errorlog.co"
     @@client                         = HTTPClient.new
-    @@rails = defined?(Rails)
+    @@opts                           = opts
+    @@rails                          = defined?(Rails)
+    @@loggers_ready                  = false
+    @@component                      = nil
+
+    if @@rails && !opts[:no_catch_logs]
+      @@logger                      = Rails.logger = ChainLogger.new Rails.logger
+      ActionController::Base.logger = ChainLogger.new ActionController::Base.logger
+      if defined?(ActiveRecord)
+        ActiveRecord::Base.logger = ChainLogger.new ActiveRecord::Base.logger
+      end
+      @@loggers_ready = true
+
+      # Delayed job
+      if defined?(Delayed)
+        require 'errlog/dj'
+      end
+    end
   end
 
-  def self.app_name
-    @@app_name #rescue nil
+  def self.logger
+    @@logger ||= ChainLogger.new
+  end
+
+  def self.use_logging?
+    !@@opts[:no_logs]
+  end
+
+  def self.application
+    @@application #rescue nil
   end
 
   def self.configured?
@@ -61,20 +88,28 @@ module Errlog
     @@packager.pack(data)
   end
 
-  def self.create_logger with_logger=nil
-    self.context.create_logger with_logger
-  end
-
   def self.protect component_name=nil, options={}, &block
-     context.protect component_name, options, &block
+    context.protect component_name, options, &block
   end
 
   def self.protect_rethrow component_name=nil, &block
     context.protect_rethrow component_name, &block
   end
 
-  def self.report_exception e, &block
-    self.context.report_exception e, &block
+  def self.exception e, &block
+    self.context.exception e, &block
+  end
+
+  def self.trace text, details=nil, severity=Errlog::TRACE, &block
+    self.context.trace text, details, severity, &block
+  end
+
+  def self.error text, details=nil, severity=Errlog::TRACE, &block
+    self.context.error text, details, severity, &block
+  end
+
+  def self.warning text, details=nil, severity=Errlog::TRACE, &block
+    self.context.warning text, details, severity, &block
   end
 
   def self.report text, severity = Errlog::ERROR, &block
@@ -82,7 +117,7 @@ module Errlog
   end
 
   def self.clear_context
-    ctx                              = Errlog::Context.new
+    ctx                             = Errlog::Context.new
     Thread.current[:errlog_context] = ctx
     ctx
   end
@@ -94,18 +129,27 @@ module Errlog
   private
 
   def self.post src
-    data = pack(src)
+    data           = pack(src)
     @@send_threads ||= []
 
     t = Thread.start {
-      #puts "sending to #{@@host}"
+      puts "sending to #{@@host}"
+
       error = nil
       begin
-        res = @@client.post "#{@@host}/reports/log", app_id: @@app_id, data: Base64::encode64(data)
+        sio = StringIO.new(data)
+        puts sio.respond_to? :read
+        puts sio.pos
+        puts sio.respond_to? :pos=
+
+        res = @@client.post "#{@@host}/reports/log", app_id: @@app_id, :file => HTTPClient::UploadIO.new(StringIO.new(data), "data.0")
+
         error = "report refused: #{res.status}" if res.status != 200
       rescue Exception => e
         error = e
       end
+      STDERR.puts "Error sending errlog: #{error}" if error
+      #puts "sent" unless error
       yield error if block_given?
     }
     @@send_threads << WeakRef.new(t)
