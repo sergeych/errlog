@@ -79,12 +79,27 @@ module Errlog
       errlog_collect_context(context).report text, severity
     end
 
+    def parametrize obj
+      case obj
+        when String
+          obj
+        when Array
+          obj.map { |x| parametrize(x) }
+        when ActionDispatch::Http::UploadedFile
+          obj.inspect
+        when Hash
+          obj.inject({}) { |all, kv| all[kv[0].to_s] = parametrize(kv[1]); all }
+        else
+          obj.to_s
+      end
+    end
+
     @@headers_exclusion_keys = %w|async. action_dispatch. cookie rack. rack-cache. warden action_controller.|
 
     def errlog_collect_context ctx=nil
       ctx ||= errlog_context
       ctx.component = "#{self.class.name}##{params[:action]}"
-      ctx.params    = params
+      ctx.params    = parametrize(params)
       headers       = {}
       request.headers.to_hash.each { |k, v|
         next if @@headers_exclusion_keys.any? { |s| k.starts_with?(s) }
@@ -102,6 +117,7 @@ module Errlog
         end
         headers[k.to_s] = res
       }
+      headers.each { |k,v| puts "--H--> #{k} -> #{v}" }
       ctx.headers = headers
       if respond_to?(:current_user)
         ctx.current_user = if current_user
