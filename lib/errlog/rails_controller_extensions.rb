@@ -7,6 +7,7 @@ module Errlog
       base.send :helper_method, :errlog_report
       base.send :helper_method, :errlog_collect_context
       base.send :helper_method, :errlog_exception
+      base.send :helper_method, :errlog_not_found
       true
     end
 
@@ -29,7 +30,7 @@ module Errlog
     rescue Exception => e
       if Errlog.configured?
         errlog_collect_context ctx
-        ctx.report_exception e
+        errlog_exception e, ctx
       else
         rl.prev_logger.error 'Errlog is not configured, can not report an exception'
       end
@@ -42,15 +43,43 @@ module Errlog
       true
     end
 
-    def errlog_exception e, context = nil
-      errlog_collect_context(context).report_exception e
+    # Helper for 404's or like. Can be used as the trap.
+    #
+    # The argument may be either an Exception object or a text message.
+    # Can be used as the rescue_from catcher:
+    #
+    #    rescue_from :ActiveRecord::NotFound, :with => :errlog_not_found
+    #
+    # or manually:
+    #
+    #    def load_item
+    #      item = Item.find_by_id(params[:id]) or errlog_not_found
+    #
+    def errlog_not_found text = 'Resource not found'
+      errlog_context.not_found = true
+      if text.is_a?(Exception)
+        errlog_exception text, nil, Errlog::WARNING
+      else
+        errlog_report text, Errlog::WARNING
+      end
+      respond_to do |format|
+        format.html {
+          render :file => "#{Rails.root}/public/404.html", :status => :not_found
+        }
+        format.xml { head :not_found }
+        format.any { head :not_found }
+      end
+    end
+
+    def errlog_exception e, context = nil, severity = Errlog::ERROR
+      errlog_collect_context(context).report_exception e, severity
     end
 
     def errlog_report text, severity = Errlog::ERROR, context=nil
       errlog_collect_context(context).report text, severity
     end
 
-    @@headers_exclusion_keys = %w|async. action_dispatch. cookie rack. warden action_controller.|
+    @@headers_exclusion_keys = %w|async. action_dispatch. cookie rack. rack-cache. warden action_controller.|
 
     def errlog_collect_context ctx=nil
       ctx ||= errlog_context

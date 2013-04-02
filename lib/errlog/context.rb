@@ -17,9 +17,10 @@ module Errlog
       self.protect component_name, retrhow: true, &block
     end
 
-    def report_exception e, &block
+    def report_exception e, severity=Errlog::ERROR, &block
       self.stack = e.backtrace
-      report "#{e.to_s}", Errlog::ERROR
+      self.details = e.to_s
+      report "#{e.class.name}", severity
     end
 
     def report_warning text, &block
