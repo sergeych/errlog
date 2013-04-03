@@ -32,20 +32,12 @@ module Errlog
     #    def load_item
     #      item = Item.find_by_id(params[:id]) or errlog_not_found
     #
+    # Reports and rethrows rails standard ActionController::RoutingError to
+    # activate default 404 processing
     def errlog_not_found text = 'Resource not found'
-      errlog_context.not_found = true
-      #if text.is_a?(Exception)
-      #  errlog_context.exception text, Errlog::WARNING
-      #else
-        errlog_context.warning text.to_s
-      #end
-      respond_to do |format|
-        format.html {
-          render :file => "#{Rails.root}/public/404.html", :status => :not_found
-        }
-        format.xml { head :not_found }
-        format.any { head :not_found }
-      end
+      ex = ActionController::RoutingError.new text
+      errlog_context.exception ex
+      raise ex
     end
 
     private
@@ -59,7 +51,8 @@ module Errlog
     end
 
     def errlog_report_exceptons e
-      errlog_context.exception e
+      errlog_context.exception e, e.is_a?(ActionController::RoutingError) ? Errlog::ERROR : Errlog::WARNING
+      raise
     end
 
     def parametrize obj
