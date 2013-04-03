@@ -44,7 +44,7 @@ module Errlog
 
     def report text, severity = Errlog::ERROR, &block
       raise 'Errlog is not configured. Use Errlog.config' unless Errlog.configured?
-      !self.application and self.application = Errlog.application
+      self.application ||= Errlog.application
       self.time     = Time.now
       self.severity = severity
       self.platform ||= Errlog.default_platform

@@ -115,7 +115,8 @@ module Errlog
       end
       ctx.url = request.url
       ctx.remote_ip = request.remote_ip
-      if Errlog.application.blank? && request.url =~ %r|^https?://(.+?)[/:]|
+      ctx.application = Errlog.application
+      if ctx.application.blank? && request.url =~ %r|^https?://(.+?)[/:]|
         ctx.application = $1
       end
       ctx

@@ -1,9 +1,7 @@
 
-puts "Installing DJ integration"
 begin
   class Delayed::Worker
     def handle_failed_job_with_errlog(job, error)
-      puts "habdle failed job #{job} #{error}"
       Errlog.context.component = 'DJ'
       Errlog.exception error
       Errlog.clear_context

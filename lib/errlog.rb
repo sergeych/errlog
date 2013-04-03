@@ -73,7 +73,7 @@ module Errlog
   end
 
   def self.configured?
-    defined?(@@app_id) && @@app_id && @@app_secret
+    (@@rails && Rails.env == 'test') || defined?(@@app_id) && @@app_id && @@app_secret
   end
 
   def self.default_platform
@@ -129,21 +129,18 @@ module Errlog
   private
 
   def self.post src
+    if @@rails && Rails.env == 'test'
+      Rails.logger.info "Errlog: sending: #{src[:text]}"
+      return
+    end
     data           = pack(src)
     @@send_threads ||= []
 
     t = Thread.start {
-      puts "sending to #{@@host}"
-
       error = nil
       begin
-        sio = StringIO.new(data)
-        puts sio.respond_to? :read
-        puts sio.pos
-        puts sio.respond_to? :pos=
-
-        res = @@client.post "#{@@host}/reports/log", app_id: @@app_id, :file => HTTPClient::UploadIO.new(StringIO.new(data), "data.0")
-
+        fio = HTTPClient::UploadIO.new(StringIO.new(data), "data.bin")
+        res = @@client.post "#{@@host}/reports/log", app_id: @@app_id, :file => fio
         error = "report refused: #{res.status}" if res.status != 200
       rescue Exception => e
         error = e
@@ -160,4 +157,8 @@ module Errlog
     @@send_threads == []
   end
 
+end
+
+if defined?(Rails) && Rails.env == 'test'
+  Errlog.configure 'test id', 'test key', application: 'test app'
 end
