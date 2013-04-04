@@ -8,10 +8,17 @@ begin
       handle_failed_job_without_errlog(job, error)
     end
     alias_method_chain :handle_failed_job, :errlog
+
+    def run_with_errlog job
+      puts "RRRRR!"
+      Errlog.clear_context
+      puts "CLEAR"
+      run_without_errlog job
+    end
+    alias_method_chain :run, :errlog
   end
 rescue => e
   STDERR.puts "Problem starting Exceptional for Delayed-Job. Your app will run as normal\n#{e}"
   Errlog.context.component = 'DJ'
   Errlog.exception e
 end
-
