@@ -10,9 +10,7 @@ begin
     alias_method_chain :handle_failed_job, :errlog
 
     def run_with_errlog job
-      puts "RRRRR!"
       Errlog.clear_context
-      puts "CLEAR"
       run_without_errlog job
     end
     alias_method_chain :run, :errlog
