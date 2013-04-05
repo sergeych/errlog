@@ -43,7 +43,7 @@ module Errlog
     private
 
     def errlog_connect_context
-      @errlog_context = Errlog.clear_context
+      @errlog_context = Errlog.context
       @errlog_context.before_report {
         errlog_collect_context
       }
@@ -75,7 +75,7 @@ module Errlog
     public
 
     def errlog_collect_context ctx=nil
-      ctx ||= errlog_context
+      ctx           ||= errlog_context
       ctx.component = "#{self.class.name}##{params[:action]}"
       ctx.params    = parametrize(params)
       headers       = {}
@@ -106,8 +106,8 @@ module Errlog
                              "not logged in"
                            end
       end
-      ctx.url = request.url
-      ctx.remote_ip = request.remote_ip
+      ctx.url         = request.url
+      ctx.remote_ip   = request.remote_ip
       ctx.application = Errlog.application
       if ctx.application.blank? && request.url =~ %r|^https?://(.+?)[/:]|
         ctx.application = $1
@@ -116,6 +116,23 @@ module Errlog
     end
   end
 
+  class ContextMiddleware
+    def initialize(app)
+      @app = app
+    end
+
+    def call(env)
+      Errlog.clear_context
+      status, headers, body = @app.call(env)
+      [status, headers, body]
+    end
+  end
+
+  class Railtie < Rails::Railtie
+    initializer "Errlog.insert_middleware" do |app|
+      app.config.middleware.use 'Errlog::ContextMiddleware'
+    end
+  end
 end
 
 ActionController::Base.send :include, Errlog::ControllerFilter
