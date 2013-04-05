@@ -86,4 +86,6 @@ describe Errlog do
     Errlog.severity_name(Errlog::TRACE).should == 'trace'
   end
 
+  it 'should work fine when not configured'
+
 end

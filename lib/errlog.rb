@@ -34,7 +34,10 @@ module Errlog
     return Packager.new id, key
   end
 
+  @@configured = false
+
   def self.configure id, key, opts={}
+    @@configured                     = true
     @@app_id, @@app_secret, @options = id, key, opts
     @@application                    = opts[:application] || ''
     @@packager                       = packager @@app_id, @@app_secret
@@ -73,7 +76,11 @@ module Errlog
   end
 
   def self.configured?
-    (@@rails && Rails.env == 'test') || defined?(@@app_id) && @@app_id && @@app_secret
+    if @@configured
+      (@@rails && Rails.env == 'test') || defined?(@@app_id) && @@app_id && @@app_secret
+    else
+      false
+    end
   end
 
   def self.default_platform

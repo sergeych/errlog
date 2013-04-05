@@ -18,6 +18,7 @@ module Errlog
     end
 
     def exception e, severity=Errlog::ERROR, &block
+      raise unless Errlog.configured?
       self.stack = e.backtrace
       self.exception_class = e.class.name
       report e.to_s, severity
