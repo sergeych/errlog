@@ -7,6 +7,7 @@ require 'stringio'
 
 describe Errlog do
 
+  context 'configured' do
   before :each do
     Errlog.configure 'TheTestId', '1234567890123456'
     @packager = Errlog.packager 'TheTestId', '1234567890123456'
@@ -86,6 +87,15 @@ describe Errlog do
     Errlog.severity_name(Errlog::TRACE).should == 'trace'
   end
 
-  it 'should work fine when not configured'
+  end
+
+  it 'should work fine when not configured' do
+    expect { Errlog.error "Some error" }.to raise_error(StandardError, 'Errlog is not configured. Use Errlog.config')
+    expect {
+      Errlog.protect_rethrow {
+        raise "test"
+      }
+    }.to raise_error(StandardError, "test")
+  end
 
 end
