@@ -22,7 +22,34 @@ More: http://errorlog.co/help/rails
 
 ## Usage
 
-Please read the instructions.
+    Errlog.configure(...) # visit the link above for help on credentials
+
+    Errlog.protect { |ctx|
+        # Any exception from here will be caught and reported
+        ctx.extra_data = "Anything you want to attach to trace/warning/error report"
+    }
+
+    Errlog.protect_rethrow { |ctx|
+        # Same as above, but the exception will be rethrown
+    }
+
+    Errlog.trace "So far so good"
+
+    # some syntax sugar
+
+    x == y or Errlog.error "Something is wrong" do |ctx|
+        ctx.expected_value = x
+        ctx.real_one = y
+    }
+
+    begin
+        ...
+    rescue Exception => e
+        Errlog.context.exception e
+        ...
+    end
+
+Please read details here: http://errorlog.co/help/rails
 
 As the service is under active development, be sure to `bundle update errlog` regularly.
 
