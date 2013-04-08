@@ -1,11 +1,7 @@
 # Errlog
 
-*ATTENTION!*
-
-This is a reporting tool tor errlog.co service under development, not yet available fpr public.
-
-
-The rest is a template for not to type it later on. Please ignore.
+The Errlog logging client (http://errorlog.co). with rails & delayed_job integrations. See usage details
+at http://errorlog.co/help/rails. The service is in beta test now.
 
 
 ## Installation
@@ -22,9 +18,13 @@ Or install it yourself as:
 
     $ gem install errlog
 
+More: http://errorlog.co/help/rails
+
 ## Usage
 
-TODO: Write usage instructions here
+Please read the instructions.
+
+As the service is under active development, be sure to `bundle update errlog` regularly.
 
 ## Contributing
 
