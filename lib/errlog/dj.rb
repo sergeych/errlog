@@ -1,5 +1,9 @@
 
 begin
+  # Delayed_job integration automatically detects delayed_job presence
+  # and report all uncaught exceptions from your delayed jobs. It also
+  # takes care of properly clearing the context and collection per-job
+  # logs
   class Delayed::Worker
     def handle_failed_job_with_errlog(job, error)
       Errlog.context.component = 'DJ'
