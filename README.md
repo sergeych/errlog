@@ -49,7 +49,12 @@ More: http://errorlog.co/help/rails
         ...
     end
 
-Please read details here: http://errorlog.co/help/rails
+    logger = Errlog::ChainLogger.new
+    logger.info "This string will be collected"
+
+
+Consult API docs for more: http://rdoc.info/github/sergeych/errlog/master/frames. Configuration
+details are available at http://errorlog.co/help/rails
 
 As the service is under active development, be sure to `bundle update errlog` regularly.
 
