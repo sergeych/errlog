@@ -10,6 +10,8 @@ module Errlog
     NOT_FOUND = 49
     TRACE     = 1
 
+    STAT_DATA = 1001
+
     # @!endgroup
 
     def is_error?(code)
