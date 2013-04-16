@@ -15,27 +15,37 @@ if defined?(Rails)
   require 'errlog/rails_controller_extensions'
 end
 
+=begin
+  The reporting module for errlog service, see http://errorlog.com for details.
+
+  The usage is quite simple:
+
+  Errlog.configure(
+      account_id, account_secret,
+      :application => 'MyGreatApplication')
+
+  And use any of {Errlog.context} and {Errlog::Context} methods to report exceptions,
+  collect logs, traces and so on.
+
+  See http://errorlog.co/help for more.
+=end
+
 module Errlog
 
   include Errlog::Constants
+  extend Errlog::Constants
 
-  def self.severity_name code
-    case code
-      when TRACE...WARNING;
-        'trace'
-      when WARNING...ERROR;
-        'warning'
-      else
-        ; 'error'
-    end
-  end
-
+  # @return [Errlog::Packager] packager instance for configured credentials, see {Errorlog.configure}
   def self.packager id, key
     return Packager.new id, key
   end
 
   @@configured = false
 
+  # Configure your instance. Sbhould be called before any other methods. Follow http://errorlog.co/help/rails
+  # to get your credentials
+  #
+  # @param [string] id account id
   def self.configure id, key, opts={}
     @@configured                     = true
     @@app_id, @@app_secret, @options = id, key, opts

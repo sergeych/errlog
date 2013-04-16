@@ -38,4 +38,12 @@ describe 'Packager' do
     payload = { 'type' => 'log', 'payload' => 'The test payload again' }
     @packager.unpack(Errlog.pack(payload)).should == payload
   end
+
+  it 'should unpack v1 packages' do
+    # V1 format uses GZip stream, no encryption and sha256 signature
+    b64 = 'AR+LCAAAAAAAAAOrVvJIzcnJV7KKVirPL8pJMVTSgTCMlGJrAQuX/j4dAAAAz/urvrAsvKusrC9PvECtQERrhNoH+95xE7EzR1HoThU='
+    data = b64.unpack('m')[0]
+    @packager = Errlog.packager 'TheTestId', '6rA/5Ud1WEYoTz3h9umdXw=='.unpack('m')[0]
+    @packager.unpack(data).should == {'Hello' => ['world1', 'world2']}
+  end
 end

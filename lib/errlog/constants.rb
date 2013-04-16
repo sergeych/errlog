@@ -23,5 +23,20 @@ module Errlog
     def is_trace? code
       code >= TRACE && code < WARNING
     end
+
+    # @return [String] name of the corresponding severity code
+    def severity_name code
+      case code
+        when NOT_FOUND;
+          'not found'
+        when TRACE...WARNING;
+          'trace'
+        when WARNING...ERROR;
+          'warning'
+        else
+          ; 'error'
+      end
+    end
+
   end
 end
