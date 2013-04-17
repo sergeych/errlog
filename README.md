@@ -58,6 +58,10 @@ details are available at http://errorlog.co/help/rails
 
 As the service is under active development, be sure to `bundle update errlog` regularly.
 
+## Clients for other platforms:
+
+ * iPhone IOS (objectiveC): https://github.com/sergeych/errlog-ios
+
 ## Contributing
 
 1. Fork it
