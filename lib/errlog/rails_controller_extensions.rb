@@ -2,10 +2,12 @@ module Errlog
   module ControllerFilter
 
     def self.included base
-      base.send :prepend_before_filter, :errlog_connect_context
-      base.send :rescue_from, Exception, :with => :errlog_report_exceptons
-      base.send :helper_method, :errlog_context
-      base.send :helper_method, :errlog_not_found
+      if Rails.env != 'test'
+        base.send :prepend_before_filter, :errlog_connect_context
+        base.send :rescue_from, Exception, :with => :errlog_report_exceptons
+        base.send :helper_method, :errlog_context
+        base.send :helper_method, :errlog_not_found
+      end
     end
 
 

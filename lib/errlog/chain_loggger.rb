@@ -24,13 +24,19 @@ module Errlog
 
     # @return current log level
     def level
-      @prev_logger and @prev_logger.level
+      @prev_logger ? @prev_logger.level : super
     end
 
     # Standard add log method, see (Logger#add)
     def add severity, message = nil, progname = nil
       message = yield if block_given?
-      @prev_logger and @prev_logger.add(severity, message, progname)
+      if Errlog.rails_test?
+        Rails.logger.add(severity, message, progname)
+      else
+        @prev_logger and @prev_logger.add(severity, message, progname)
+      end
+      # Rails.logger.info "- #{@prev_logger}: #{progname} ="
+      #puts message #if Errlog.rails_test?
       Errlog.context.add_log_record [severity, Time.now, message, progname]
     end
 

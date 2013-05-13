@@ -59,7 +59,9 @@ module Errlog
     @@component                      = nil
 
     if @@rails && !opts[:no_catch_logs]
-      @@logger                      = Rails.logger = ChainLogger.new Rails.logger
+      if Rails.env != 'test'
+        @@logger                      = Rails.logger = ChainLogger.new Rails.logger
+      end
       ActionController::Base.logger = ChainLogger.new ActionController::Base.logger
       if defined?(ActiveRecord)
         ActiveRecord::Base.logger = ChainLogger.new ActiveRecord::Base.logger
@@ -73,8 +75,15 @@ module Errlog
     end
   end
 
-  def self.logger
-    @@logger ||= ChainLogger.new
+  # Create logger that will report its content on {Errlog.error}, {Errlog.trace} and {Errlog.warning}
+  # and {ErrlogContext} reporting funtions. It can user existing logger to pass through, ot will create
+  # {Logger} with STDOUT
+  #
+  # @param logger existing logger to pass log to, If nil, STDOUT Logger will be created
+  # @return [ChainLogger] new instance.
+  def self.logger logger = nil
+    logger ||= Logger.new(STDOUT)
+    @@logger ||= ChainLogger.new logger
   end
 
   def self.use_logging?
@@ -99,6 +108,10 @@ module Errlog
 
   def self.rails?
     @@rails
+  end
+
+  def self.rails_test?
+    @rails_test == nil and @rails_test = @@rails && Rails.env == 'test'
   end
 
   def self.pack data
@@ -147,7 +160,8 @@ module Errlog
 
   def self.post src
     if @@rails && Rails.env == 'test'
-      Rails.logger.info "Errlog: sending: #{src[:text]}"
+      Rails.logger.info "Errlog: #{severity_name(src[:severity])}: #{src['text']}"
+      stack=src['stack'] and Rails.logger.info "    #{stack.join("\n    ")}"
       return
     end
     data           = pack(src)
