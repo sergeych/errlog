@@ -61,10 +61,10 @@ module Errlog
     if @@rails && !opts[:no_catch_logs]
       if Rails.env != 'test'
         @@logger                      = Rails.logger = ChainLogger.new Rails.logger
-      end
-      ActionController::Base.logger = ChainLogger.new ActionController::Base.logger
-      if defined?(ActiveRecord)
-        ActiveRecord::Base.logger = ChainLogger.new ActiveRecord::Base.logger
+        ActionController::Base.logger = ChainLogger.new ActionController::Base.logger
+        if defined?(ActiveRecord)
+          ActiveRecord::Base.logger = ChainLogger.new ActiveRecord::Base.logger
+        end
       end
       @@loggers_ready = true
 
