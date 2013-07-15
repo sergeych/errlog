@@ -30,6 +30,10 @@ Parameters
   -a appname
     set the application name. 'default' if not set.
 
+  -t test package
+    This mode allows developer to test the packed data. Pass your packed in base64 form instead of the
+    text and you will either see the unpacked data or an error message.
+
 Some/all of there parameters might be set in the .errlog.yml file in the current path
 or down the tree. Command-line parameters override these from configuration file.
 
@@ -51,20 +55,22 @@ end
 usage if ARGV.length == 0
 
 key, id, text, host, app, platform = nil, nil, '', nil, nil, nil
-severity = 100
+severity                           = 100
+
+test_mode = false
 
 begin
   n = 0
   while n < ARGV.length do
     arg = ARGV[n]
-    n += 1
+    n   += 1
     case arg
       when '-k'
         key = ARGV[n]
-        n += 1
+        n   += 1
       when '-i'
         id = ARGV[n]
-        n += 1
+        n  += 1
       when /^--local/
         host = "http://localhost:8080"
       when /^--warn/
@@ -73,10 +79,12 @@ begin
         severity = Errlog::TRACE
       when '-a'
         app = ARGV[n]
-        n += 1
+        n   += 1
       when '-p'
         platform = ARGV[n]
-        n += 1
+        n        += 1
+      when '-t'
+        test_mode = true
       else
         text = arg.strip
         break
@@ -99,10 +107,10 @@ if !key || !id
     error "Neither id/key or configuration file was found"
     usage
   end
-  cfg = OpenStruct.new YAML::load_file(cfile)
-  id ||= cfg.account_id
-  key ||= cfg.account_key
-  app ||= cfg.application
+  cfg      = OpenStruct.new YAML::load_file(cfile)
+  id       ||= cfg.account_id
+  key      ||= cfg.account_key
+  app      ||= cfg.application
   platform ||= cfg.platform
 end
 
@@ -113,12 +121,21 @@ end
 
 usage if !key || !id || text.length == 0
 
-Errlog.configure id, key, {host: host}
-Errlog.context.platform = platform
+Errlog.configure id, key, { host: host }
+Errlog.context.platform    = platform
 Errlog.context.application = app
 
-Errlog.report text, severity do |error|
-  STDERR.puts "Error: #{error}".red if error
-  exit error ? 10 : 0
+if test_mode
+  packager              = Errlog.default_packager
+  packager.throw_errors = true
+  puts "Decoded valid errlog package: \n#{packager.unpack(Base64.decode64(text)).inspect}"
+  exit 0
 end
-Errlog.wait
+
+Errlog.report text, severity
+if Errlog.wait
+  STDERR.puts "Error sending the report".red
+  exit 10
+end
+
+exit 0

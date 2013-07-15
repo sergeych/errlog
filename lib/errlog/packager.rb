@@ -12,9 +12,14 @@ module Errlog
   # transfer the report over the network. Normally you don't use it directly.
   class Packager
 
-    def initialize app_id, app_key
+    attr_accessor :throw_errors
+
+    class Exception < Exception; end;
+
+    def initialize app_id, app_key, throw_errors = false
       @appid = app_id
       @key   = app_key.length == 16 ? app_key : Base64.decode64(app_key)
+      @throw_errors = throw_errors
     end
 
     # AES-128 encrypt the block
@@ -57,14 +62,18 @@ module Errlog
           data = block[1...-32]
           sign = block[-32..-1]
           if sign != Digest::SHA256.digest(data + @key)
+            puts "Sign does not match"
+            @throw_errors and raise Exception, "Wrong signature"
             nil
           else
             JSON.parse Zlib::GzipReader.new(StringIO.new(data)).read
           end
         else
+          @throw_errors and raise Exception, "Unknown block type: #{block[0].ord}"
           nil
       end
     rescue
+      @throw_errors and raise
       nil
     end
 

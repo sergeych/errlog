@@ -41,6 +41,7 @@ module Errlog
   end
 
   @@configured = false
+  @@send_error = false
 
   # Configure your instance. Sbhould be called before any other methods. Follow http://errorlog.co/help/rails
   # to get your credentials
@@ -118,6 +119,10 @@ module Errlog
     @@packager.pack(data)
   end
 
+  def self.default_packager
+    @@packager
+  end
+
   def self.protect component_name=nil, options={}, &block
     context.protect component_name, options, &block
   end
@@ -156,6 +161,12 @@ module Errlog
     Thread.current[:errlog_context] || clear_context
   end
 
+  def self.wait
+    @@send_threads.each { |t| t.weakref_alive? and t.join }
+    @@send_threads == []
+    @@send_error
+  end
+
   private
 
   def self.post src
@@ -175,17 +186,12 @@ module Errlog
         error = "report refused: #{res.status}" if res.status != 200
       rescue Exception => e
         error = e
+        @@send_error = error
       end
       STDERR.puts "Error sending errlog: #{error}" if error
-      #puts "sent" unless error
       yield error if block_given?
     }
     @@send_threads << WeakRef.new(t)
-  end
-
-  def self.wait
-    @@send_threads.each { |t| t.weakref_alive? and t.join }
-    @@send_threads == []
   end
 
 end
