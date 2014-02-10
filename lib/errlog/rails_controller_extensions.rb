@@ -81,7 +81,10 @@ module Errlog
       ctx.component = "#{self.class.name}##{params[:action]}"
       ctx.params    = parametrize(params)
       headers       = {}
-      request.headers.to_hash.each { |k, v|
+
+      hh = Rails.version[0] == '3' ? request.headers.to_hash : request.headers.to_h
+
+      hh.each { |k, v|
         next if @@headers_exclusion_keys.any? { |s| k.starts_with?(s) }
         res = nil
         case v
