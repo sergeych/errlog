@@ -3,6 +3,10 @@
 The Errlog logging client (http://errorlog.co). with rails & delayed_job integrations. See usage details
 at http://errorlog.co/help/rails. The service is in beta test now.
 
+Latest changes:
+
+* Fox to work with rails 4
+
 
 ## Installation
 
